@@ -63,7 +63,7 @@ public class ItemController {
     }
 
     private Mono<Status> getOkStatus(String uuid) {
-        return getStatus(uuid).flatMap(e -> {
+        return getStatus(uuid).delayElement(Duration.ofSeconds(1)).flatMap(e -> {
             //logger.info("New Status for {}: {}", uuid, e);
             if (e.getStatusType().equals(StatusType.IN_PROGRESS)) {
                 return getOkStatus(uuid);
