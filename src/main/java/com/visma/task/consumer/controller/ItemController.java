@@ -3,15 +3,18 @@ package com.visma.task.consumer.controller;
 import com.visma.task.consumer.model.Status;
 import com.visma.task.consumer.model.StatusType;
 import com.visma.task.consumer.service.ItemService;
+import io.netty.channel.ChannelOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
@@ -29,22 +32,10 @@ public class ItemController {
 
     @Autowired
     public ItemController(@Value("${thirdparty.url.base}") String baseUrl, ItemService itemService) {
-        this.webClient = WebClient.builder().baseUrl(baseUrl).build();
+        this.webClient = WebClient.builder().baseUrl(baseUrl).clientConnector(new ReactorClientHttpConnector(HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 60000)
+                .responseTimeout(Duration.ofSeconds(60)))).build();
         this.itemService = itemService;
-    }
-
-    @PostMapping("/{content}")
-    public ResponseEntity getItemStatus(@PathVariable String content) throws Exception {
-        String uiid = itemService.createItem(content);
-        StatusType statusType;
-        do {
-            statusType = itemService.getStatusType(uiid);
-            if (statusType.equals(StatusType.FAILED)) {
-                uiid = itemService.createItem(content);
-            }
-        } while (!statusType.equals(StatusType.OK));
-
-        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/v2/{content}")
