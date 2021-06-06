@@ -29,7 +29,6 @@ public class ProcessingService {
 
     public String callInit(String content) throws SocketException {
         ResponseEntity<String> response = restfulService.postJson(URL_INIT, content, String.class);
-        logger.info("Successful init, uiid: {}", response.getBody());
         return response.getBody();
     }
 
