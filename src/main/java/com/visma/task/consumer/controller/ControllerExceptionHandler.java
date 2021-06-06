@@ -1,6 +1,5 @@
 package com.visma.task.consumer.controller;
 
-import com.visma.task.consumer.service.ItemServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -19,12 +18,12 @@ public class ControllerExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerExceptionHandler.class);
 
-//    @ExceptionHandler(java.net.ConnectException.class)
-//    public ResponseEntity<Object> handleConnectionException(ConnectException e) {
-//        logger.error("ConnectionException, message: {}, cause: {}", e.getMessage(), e.getCause());
-//        Map<String, Object> body = new LinkedHashMap<>();
-//        body.put("timestamp", LocalDateTime.now());
-//        body.put("message", "Connectivity error");
-//        return new ResponseEntity<>(body, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
-//    }
+    @ExceptionHandler(java.net.ConnectException.class)
+    public ResponseEntity<Object> handleConnectionException(ConnectException e) {
+        logger.error("ConnectionException, message: {}, cause: {}", e.getMessage(), e.getCause());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Connectivity error");
+        return new ResponseEntity<>(body, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
+    }
 }

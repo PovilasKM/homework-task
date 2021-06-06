@@ -1,18 +1,18 @@
 package com.visma.task.consumer.controller;
 
 import com.visma.task.consumer.model.Item;
-import com.visma.task.consumer.model.Status;
 import com.visma.task.consumer.model.StatusType;
 import com.visma.task.consumer.service.ItemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "api/items", produces = "application/json")
 public class ItemController {
-    //TODO create controller advice
 
     private ItemService itemService;
 
@@ -22,16 +22,16 @@ public class ItemController {
     }
 
     @PostMapping("/{content}")
-    public ResponseEntity getItemStatus(@PathVariable String content) throws Exception {
-        String uiid = itemService.createItem(content);
+    public ResponseEntity<Item> getItemStatus(@PathVariable String content) throws Exception {
+        String uuid = itemService.createItem(content);
         StatusType statusType;
         do {
-            statusType = itemService.getStatusType(uiid);
+            statusType = itemService.getStatusType(uuid);
             if (statusType.equals(StatusType.FAILED)) {
-                uiid = itemService.createItem(content);
+                uuid = itemService.createItem(content);
             }
         } while (!statusType.equals(StatusType.OK));
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body(new Item(content, StatusType.OK));
     }
 }

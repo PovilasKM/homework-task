@@ -4,9 +4,9 @@ import com.visma.task.consumer.model.StatusType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.net.ConnectException;
 import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
@@ -15,10 +15,13 @@ public class ItemServiceImpl implements ItemService {
 
     private static final Logger logger = LoggerFactory.getLogger(ItemServiceImpl.class);
 
-    private ProcessingService processingService;
+    private final ProcessingService processingService;
+
+    private final int REQUEST_SLEEP_TIMER;
 
     @Autowired
-    public ItemServiceImpl(ProcessingService processingService) {
+    public ItemServiceImpl(@Value("${request.sleep.timer.ms}") int requestSleepTimer, ProcessingService processingService) {
+        this.REQUEST_SLEEP_TIMER = requestSleepTimer;
         this.processingService = processingService;
     }
 
@@ -29,7 +32,9 @@ public class ItemServiceImpl implements ItemService {
             try {
                 uiid = processingService.callInit(content);
             } catch (SocketException e) {
-                TimeUnit.MILLISECONDS.sleep(200);
+                logger.warn("SocketException while calling thirdparty service: {}", e.getMessage());
+                // In case third party service load is too big right now
+                TimeUnit.MILLISECONDS.sleep(REQUEST_SLEEP_TIMER);
                 uiid = processingService.callInit(content);
             }
         } while (uiid == null);
@@ -37,20 +42,21 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public StatusType getStatusType(String uiid) throws Exception {
+    public StatusType getStatusType(String uuid) throws Exception {
         StatusType statusType = null;
         do {
             if (statusType != null) {
-                //only for testing purposes
-                TimeUnit.MILLISECONDS.sleep(200);
+                // thirdparty service is slot, no need to ping it instantly
+                TimeUnit.MILLISECONDS.sleep(REQUEST_SLEEP_TIMER);
             }
             try {
-                statusType = processingService.getStatus(uiid).getStatusType();
+                statusType = processingService.getStatus(uuid).getStatusType();
             } catch (SocketException e) {
-                TimeUnit.MILLISECONDS.sleep(200);
-                statusType = processingService.getStatus(uiid).getStatusType();
+                logger.warn("SocketException while calling thirdparty service: {}", e.getMessage());
+                // In case third party service load is too big right now
+                TimeUnit.MILLISECONDS.sleep(REQUEST_SLEEP_TIMER);
+                statusType = processingService.getStatus(uuid).getStatusType();
             }
-            logger.info("New status for {}: {}", uiid, statusType.toString());
         } while (statusType.equals(StatusType.IN_PROGRESS));
         return statusType;
     }
