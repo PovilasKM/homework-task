@@ -59,25 +59,29 @@ public class ItemController {
     private Mono<String> getUuid() {
         return webClient.post().uri("/init").retrieve()
                 .bodyToMono(String.class)
-                .retryWhen(Retry.backoff(10, Duration.ofSeconds(1)));
+                .onErrorResume(e -> getUuid())
+                .retryWhen(Retry.fixedDelay(10, Duration.ofSeconds(1)));
     }
 
     private Mono<Status> getOkStatus(String uuid) {
-        return getStatus(uuid).delayElement(Duration.ofSeconds(1)).flatMap(e -> {
-            //logger.info("New Status for {}: {}", uuid, e);
-            if (e.getStatusType().equals(StatusType.IN_PROGRESS)) {
-                return getOkStatus(uuid);
-            }  if (e.getStatusType().equals(StatusType.FAILED)) {
-                return getUuidAndStatus();
-            } else {
-                return Mono.just(e);
-            }
-        });
+        return getStatus(uuid)
+                .delayElement(Duration.ofSeconds(1))
+                .flatMap(e -> {
+                    if (e.getStatusType().equals(StatusType.IN_PROGRESS)) {
+                        return getOkStatus(uuid);
+                    }
+                    if (e.getStatusType().equals(StatusType.FAILED)) {
+                        return getUuidAndStatus();
+                    } else {
+                        return Mono.just(e);
+                    }
+                });
     }
 
     private Mono<Status> getStatus(String uuid) {
         return webClient.get().uri("/checkStatus/{uuid}", uuid).retrieve()
                 .bodyToMono(Status.class)
-                .retryWhen(Retry.backoff(  10, Duration.ofSeconds(1)));
+                .onErrorResume(e -> getStatus(uuid))
+                .retryWhen(Retry.fixedDelay(10, Duration.ofSeconds(1)));
     }
 }
